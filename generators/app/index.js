@@ -1,20 +1,31 @@
-'use strict';
-const Generator = require('yeoman-generator');
-const chalk = require('chalk');
-const yosay = require('yosay');
+"use strict";
+const Generator = require("yeoman-generator");
+const chalk = require("chalk");
+const yosay = require("yosay");
+const path = require("path");
 
 module.exports = class extends Generator {
   prompting() {
     // Have Yeoman greet the user.
     this.log(
-      yosay(`Welcome to the mind-blowing ${chalk.red('generator-express-mongodb')} generator!`)
+      yosay(
+        `Welcome to the mind-blowing ${chalk.red(
+          "generator-express-mongodb"
+        )} generator!`
+      )
     );
 
     const prompts = [
       {
-        type: 'confirm',
-        name: 'someAnswer',
-        message: 'Would you like to enable this option?',
+        type: "input",
+        name: "name",
+        message: "App Name",
+        default: "myapp"
+      },
+      {
+        type: "confirm",
+        name: "mongodb",
+        message: "Install MongoDB and Mongoose?",
         default: true
       }
     ];
@@ -26,13 +37,41 @@ module.exports = class extends Generator {
   }
 
   writing() {
-    this.fs.copy(
-      this.templatePath('dummyfile.txt'),
-      this.destinationPath('dummyfile.txt')
-    );
+    const src = this.sourceRoot();
+    const dest = this.destinationPath(`${this.props.name}`);
+
+    //The ignore array is used to ignore files, push file names into this array that you want to ignore.
+    const copyOpts = {
+      globOptions: {
+        ignore: []
+      }
+    };
+
+    if (!this.props.mongodb)
+      copyOpts.globOptions.ignore.push(src + "/mongoose.js");
+
+    this.fs.copy(src, dest, copyOpts);
+
+    const files = ["index.js", "package.json"];
+
+    const opts = {
+      name: this.props.name,
+      mongodb: this.props.mongodb
+    };
+
+    files.forEach(file => {
+      this.fs.copyTpl(
+        this.templatePath(file),
+        this.destinationPath(`${this.props.name}/${file}`),
+        opts,
+        copyOpts
+      );
+    });
   }
 
   install() {
-    this.installDependencies();
+    const appDir = path.join(process.cwd(), this.props.name);
+    process.chdir(appDir);
+    this.npmInstall();
   }
 };
